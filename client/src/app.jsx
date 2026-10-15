@@ -3,7 +3,7 @@ import { Satellite, Bot, Globe, ShieldAlert, Sparkles, Send, Activity, RefreshCw
 
 export default function App() {
   const [aiPrompt, setAiPrompt] = useState("");
-  const [aiResponse, setAiResponse] = useState("Ask SpaceVault AI anything about active missions, orbital mechanics, or asteroids.");
+  const [aiResponse, setAiResponse] = useState("Ask StarScope AI anything about active missions, orbital mechanics, or asteroids.");
   const [loadingAi, setLoadingAi] = useState(false);
 
   async function handleAiQuery(e) {
@@ -42,7 +42,7 @@ export default function App() {
             <Satellite className="text-black w-6 h-6 font-black" />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-white">SpaceVault</h1>
+            <h1 className="text-xl font-black tracking-tight text-white">StarScope</h1>
             <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest">Intelligence v2.6</span>
           </div>
         </div>
@@ -109,9 +109,51 @@ export default function App() {
       </main>
 
       <footer className="border-t border-gray-800 py-6 text-center text-xs text-gray-500 font-mono">
-        © 2026 SpaceVault Platform. All rights reserved. Built with React & Node.js.
+        © 2026 StarScope Platform. All rights reserved. Built with React & Node.js.
       </footer>
     </div>
   );
 }
 
+
+
+import React, { useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Stars } from '@react-three/drei';
+
+// A simple rotating Sun component
+function Sun() {
+  const sunRef = useRef();
+
+  // Rotate the sun slightly on every frame
+  useFrame(() => {
+    if (sunRef.current) {
+      sunRef.current.rotation.y += 0.002;
+    }
+  });
+
+  return (
+    <mesh ref={sunRef}>
+      <sphereGeometry args={[2, 32, 32]} />
+      <meshBasicMaterial color="#f59e0b" />
+    </mesh>
+  );
+}
+
+export default function SolarSystemCanvas() {
+  return (
+    <Canvas camera={{ position: [0, 5, 10], fov: 60 }}>
+      {/* Deep space ambient light */}
+      <ambientLight intensity={0.5} />
+      
+      {/* Background starfield */}
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade />
+      
+      {/* Render the Sun */}
+      <Sun />
+
+      {/* Allows you to rotate and zoom around the solar system using your mouse */}
+      <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
+    </Canvas>
+  );
+}

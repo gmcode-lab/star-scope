@@ -1,12 +1,1093 @@
-<!doctype html>
-<html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SpaceVault - Interactive Space Intelligence Platform</title>
-  </head>
-  <body class="bg-[#060911] text-gray-100 min-h-screen selection:bg-cyan-400 selection:text-black">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StarScope - Interactive Space Intelligence Platform</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        space: {
+                            950: '#060911',
+                            900: '#0B0E17',
+                            850: '#111625',
+                            800: '#171F32',
+                            700: '#232E4A',
+                        },
+                        neon: {
+                            cyan: '#00F0FF',
+                            purple: '#A855F7',
+                            pink: '#EC4899',
+                            amber: '#F59E0B',
+                            green: '#10B981',
+                            rose: '#F43F5E'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060911;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        
+        .bg-space-grid {
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, transparent 60%),
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        .glow-cyan { box-shadow: 0 0 25px rgba(0, 240, 255, 0.25); }
+        .glow-purple { box-shadow: 0 0 25px rgba(168, 85, 247, 0.25); }
+        .glow-pink { box-shadow: 0 0 25px rgba(236, 72, 153, 0.25); }
+        
+        .glass-panel {
+            background: rgba(11, 14, 23, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-panel-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-panel-hover:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px -10px rgba(0, 240, 255, 0.15);
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #060911; }
+        ::-webkit-scrollbar-thumb { background: #171F32; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
+
+        .pulse-indicator {
+            animation: pulse-ring 2s infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-space-950 text-gray-100 min-h-screen flex flex-col bg-space-grid relative selection:bg-neon-cyan selection:text-space-950">
+
+    <header class="sticky top-0 z-40 backdrop-blur-xl bg-space-950/80 border-b border-gray-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <a href="#" class="flex items-center space-x-3 shrink-0">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-neon-cyan via-neon-purple to-neon-pink flex items-center justify-center glow-cyan">
+                    <i class="fa-solid fa-satellite text-space-950 font-black text-lg"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-2xl font-black bg-gradient-to-r from-white via-gray-200 to-neon-cyan bg-clip-text text-transparent tracking-tight">StarScope</span>
+                    <span class="text-[10px] font-mono text-neon-cyan tracking-widest uppercase -mt-1">Telemetry v2.6</span>
+                </div>
+            </a>
+            
+            <nav class="hidden lg:flex items-center space-x-6 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                <a href="#simulator" class="hover:text-neon-cyan transition-colors flex items-center space-x-1.5">
+                    <i class="fa-solid fa-circle-nodes text-[10px] text-neon-cyan"></i>
+                    <span>System Orbit</span>
+                </a>
+                <a href="#missions" class="hover:text-neon-cyan transition-colors">Missions</a>
+                <a href="#neo" class="hover:text-neon-cyan transition-colors">Asteroids</a>
+                <a href="#impact-calculator" class="hover:text-neon-cyan transition-colors text-neon-pink flex items-center space-x-1">
+                    <i class="fa-solid fa-bolt text-xs"></i>
+                    <span>Impact Risk</span>
+                </a>
+                <a href="#exoplanets" class="hover:text-neon-cyan transition-colors">Exoplanets</a>
+                <a href="#pricing" class="hover:text-neon-cyan transition-colors">Pricing & Seats</a>
+            </nav>
+
+            <div class="flex items-center space-x-3 shrink-0">
+                <button onclick="openShareModal()" class="px-3.5 py-2 text-xs font-semibold bg-space-850 hover:bg-space-800 text-neon-pink border border-neon-pink/30 rounded-xl transition-all flex items-center space-x-2 glow-pink">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span class="hidden sm:inline">Collab Link</span>
+                </button>
+                <a href="#pricing" class="px-4 py-2 text-xs font-bold bg-gradient-to-r from-neon-cyan to-neon-purple text-space-950 rounded-xl hover:opacity-90 transition-all shadow-md flex items-center space-x-1.5">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Upgrade</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <section class="relative pt-12 pb-16 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+            <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-space-900 border border-neon-cyan/30 text-xs text-neon-cyan mb-6 glow-cyan">
+                <span class="w-2 h-2 rounded-full bg-neon-cyan pulse-indicator"></span>
+                <span class="font-mono uppercase tracking-wider text-[11px]">Real-Time Deep Space Data Feed</span>
+            </div>
+            
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white mb-6 leading-tight">
+                Deep Space Intelligence. <br class="hidden sm:inline"/>
+                <span class="bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink bg-clip-text text-transparent">Interactive & Open for All.</span>
+            </h1>
+            
+            <p class="max-w-2xl mx-auto text-sm sm:text-base text-gray-400 mb-10">
+                Explore real-time mission telemetry, simulate solar system trajectories in 3D, inspect exoplanet atmospheric compositions, and assess asteroid impact hazards interactively.
+            </p>
+
+            <!-- Unified Search Bar -->
+            <div class="max-w-3xl mx-auto glass-panel rounded-2xl p-2.5 shadow-2xl mb-8 border border-gray-800/80">
+                <div class="relative flex items-center">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 text-neon-cyan"></i>
+                    <input type="text" id="globalSearchInput" oninput="handleUnifiedSearch(this.value)" placeholder="Search missions (JWST), asteroids (Apophis), exoplanets (TRAPPIST), or tag (Mars)..." class="w-full pl-11 pr-28 py-3.5 bg-space-950/80 border border-gray-800 rounded-xl text-xs sm:text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-neon-cyan transition-colors">
+                    <span id="searchMatchesCount" class="absolute right-3 px-2.5 py-1 bg-space-800 text-[10px] font-mono text-neon-cyan rounded-lg border border-gray-700">0 Items Filtered</span>
+                </div>
+            </div>
+
+            <!-- Category Quick Tags -->
+            <div class="flex flex-wrap items-center justify-center gap-2 max-w-2xl mx-auto text-xs">
+                <span class="text-gray-500 text-[11px] font-mono">Quick Filter:</span>
+                <button onclick="setQuickTag('All')" class="tag-btn px-3 py-1 rounded-lg bg-neon-cyan text-space-950 font-bold transition-all" data-tag="All">All Data</button>
+                <button onclick="setQuickTag('Deep Space')" class="tag-btn px-3 py-1 rounded-lg bg-space-850 text-gray-300 hover:text-white border border-gray-800 transition-all" data-tag="Deep Space">Deep Space</button>
+                <button onclick="setQuickTag('Mars')" class="tag-btn px-3 py-1 rounded-lg bg-space-850 text-gray-300 hover:text-white border border-gray-800 transition-all" data-tag="Mars">Mars</button>
+                <button onclick="setQuickTag('Hazardous')" class="tag-btn px-3 py-1 rounded-lg bg-space-850 text-gray-300 hover:text-white border border-gray-800 transition-all" data-tag="Hazardous">Hazardous Asteroids</button>
+                <button onclick="setQuickTag('Habitable')" class="tag-btn px-3 py-1 rounded-lg bg-space-850 text-gray-300 hover:text-white border border-gray-800 transition-all" data-tag="Habitable">Habitable Exoplanets</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="simulator" class="py-12 border-t border-gray-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+                <div>
+                    <div class="text-xs font-mono text-neon-cyan uppercase tracking-wider mb-1 flex items-center space-x-2">
+                        <i class="fa-solid fa-gamepad"></i>
+                        <span>Interactive Sandbox Canvas</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white">Solar System & Satellite Orbit Simulator</h2>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-3 bg-space-900 p-2 rounded-2xl border border-gray-800 text-xs">
+                    <button onclick="toggleSimPlay()" id="simPlayBtn" class="px-3.5 py-2 bg-neon-cyan text-space-950 font-bold rounded-xl flex items-center space-x-1.5 transition-all">
+                        <i class="fa-solid fa-pause" id="simPlayIcon"></i>
+                        <span id="simPlayText">Pause</span>
+                    </button>
+                    <div class="flex items-center space-x-2 px-2">
+                        <span class="text-gray-400 font-mono text-[11px]">Speed:</span>
+                        <input type="range" id="simSpeedSlider" min="0.1" max="3" step="0.1" value="1" oninput="updateSimSpeed(this.value)" class="w-20 accent-neon-cyan">
+                    </div>
+                    <div class="flex items-center space-x-2 px-2">
+                        <span class="text-gray-400 font-mono text-[11px]">Zoom:</span>
+                        <input type="range" id="simZoomSlider" min="0.5" max="2" step="0.1" value="1" oninput="updateSimZoom(this.value)" class="w-20 accent-neon-purple">
+                    </div>
+                    <button onclick="resetSimCamera()" class="px-3 py-2 bg-space-800 text-gray-300 hover:text-white rounded-xl transition-all">
+                        <i class="fa-solid fa-arrow-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative glass-panel rounded-3xl overflow-hidden border border-gray-800 p-3 shadow-2xl">
+                <!-- Telemetry Inspection Overlay Card -->
+                <div id="canvasInspectOverlay" class="absolute top-6 left-6 z-20 bg-space-950/90 backdrop-blur-md border border-neon-cyan/40 p-4 rounded-2xl max-w-xs shadow-2xl hidden">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] font-mono text-neon-cyan uppercase tracking-wider" id="inspectCategory">Celestial Body</span>
+                        <button onclick="closeCanvasInspect()" class="text-gray-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <h4 class="text-base font-bold text-white mb-1" id="inspectTitle">Earth</h4>
+                    <p class="text-xs text-gray-400 mb-3" id="inspectSub">Orbital Period: 365.25 Days</p>
+                    <div class="space-y-1.5 text-xs font-mono bg-space-900/80 p-2.5 rounded-xl border border-gray-800 text-gray-300" id="inspectMetrics">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <div class="relative w-full aspect-[16/9] sm:aspect-[21/9] rounded-2xl overflow-hidden bg-space-950 cursor-grab active:cursor-grabbing" id="canvasContainer">
+                    <canvas id="orbitCanvas" class="w-full h-full block"></canvas>
+                    
+                    <div class="absolute bottom-4 left-4 z-10 text-[10px] font-mono text-gray-400 bg-space-950/80 px-3 py-1.5 rounded-xl border border-gray-800 flex items-center space-x-3">
+                        <span><i class="fa-solid fa-mouse-pointer text-neon-cyan mr-1"></i> Click body to inspect</span>
+                        <span><i class="fa-solid fa-hand text-neon-purple mr-1"></i> Drag to rotate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="missions" class="py-12 border-t border-gray-800/80 bg-space-900/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <div class="text-xs font-mono text-neon-cyan uppercase tracking-wider mb-1">Active Deep Space & Orbital Assets</div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white">Live Mission Telemetry</h2>
+                </div>
+                <span class="text-xs font-mono text-gray-400 bg-space-900 px-3 py-1.5 rounded-xl border border-gray-800" id="missionCountBadge">6 Missions Active</span>
+            </div>
+
+            <div id="missionsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic via JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <section id="neo" class="py-12 border-t border-gray-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <div>
+                    <div class="text-xs font-mono text-neon-pink uppercase tracking-wider mb-1">Live NASA / CNOOS Radar Stream</div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white">Near-Earth Asteroids (NEO)</h2>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleHazardOnly(this)" class="px-3.5 py-2 bg-space-900 border border-gray-800 text-xs font-semibold rounded-xl text-gray-300 hover:text-white transition-all flex items-center space-x-1.5">
+                        <i class="fa-solid fa-filter text-neon-pink"></i>
+                        <span>High Hazard Only</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-800 text-[11px] font-mono text-gray-400 uppercase tracking-wider bg-space-950/80">
+                                <th class="p-4 sm:p-5">Designation</th>
+                                <th class="p-4 sm:p-5">Closest Approach</th>
+                                <th class="p-4 sm:p-5">Miss Distance</th>
+                                <th class="p-4 sm:p-5">Relative Velocity</th>
+                                <th class="p-4 sm:p-5">Est. Diameter</th>
+                                <th class="p-4 sm:p-5">Risk Matrix</th>
+                                <th class="p-4 sm:p-5 text-right">Simulate Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="neoTableBody" class="divide-y divide-gray-800/60 text-xs sm:text-sm font-sans">
+                            <!-- Dynamic via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="impact-calculator" class="py-12 border-t border-gray-800/80 bg-space-900/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-neon-pink/30 relative overflow-hidden shadow-2xl">
+                <div class="absolute -right-20 -top-20 w-80 h-80 bg-neon-pink/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+                    <div class="max-w-xl">
+                        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-neon-pink/10 border border-neon-pink/30 text-xs text-neon-pink mb-4">
+                            <i class="fa-solid fa-calculator"></i>
+                            <span class="font-mono">Orbital Physics Engine</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-4xl font-black text-white mb-3">Asteroid Kinetic Impact Hazard Calculator</h2>
+                        <p class="text-xs sm:text-sm text-gray-400">
+                            Adjust dynamic parameters to simulate atmospheric re-entry energy release, kinetic blast yield in Megatons of TNT, and estimated impact crater radius.
+                        </p>
+                    </div>
+
+                    <!-- Calculator Input Controls -->
+                    <div class="w-full lg:w-1/2 bg-space-950/80 rounded-2xl p-6 border border-gray-800 space-y-5">
+                        <div>
+                            <div class="flex justify-between text-xs font-mono mb-2">
+                                <span class="text-gray-400">Asteroid Diameter:</span>
+                                <span class="text-neon-pink font-bold" id="calcDiameterVal">350 meters</span>
+                            </div>
+                            <input type="range" id="calcDiameter" min="10" max="2000" step="10" value="350" oninput="updateImpactCalc()" class="w-full accent-neon-pink">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-mono mb-2">
+                                <span class="text-gray-400">Approach Velocity:</span>
+                                <span class="text-neon-cyan font-bold" id="calcVelocityVal">25.0 km/s</span>
+                            </div>
+                            <input type="range" id="calcVelocity" min="5" max="70" step="0.5" value="25" oninput="updateImpactCalc()" class="w-full accent-neon-cyan">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-mono mb-2">
+                                <span class="text-gray-400">Target Material Density:</span>
+                                <span class="text-neon-purple font-bold" id="calcMaterialVal">Rocky Asteroid (3,000 kg/m³)</span>
+                            </div>
+                            <select id="calcMaterial" onchange="updateImpactCalc()" class="w-full bg-space-900 border border-gray-800 text-xs rounded-xl p-2.5 text-gray-200 focus:outline-none focus:border-neon-purple">
+                                <option value="1500">Porous Carbonaceous (1,500 kg/m³)</option>
+                                <option value="3000" selected>Rocky Dense Asteroid (3,000 kg/m³)</option>
+                                <option value="8000">Iron-Nickel Metallic (8,000 kg/m³)</option>
+                            </select>
+                        </div>
+
+                        <!-- Results Output Panel -->
+                        <div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-800/80 font-mono text-center">
+                            <div class="bg-space-900 p-3 rounded-xl border border-gray-800">
+                                <span class="text-[10px] text-gray-500 uppercase block">Kinetic Energy Yield</span>
+                                <span class="text-lg font-extrabold text-neon-pink" id="resEnergy">1,250 MT</span>
+                            </div>
+                            <div class="bg-space-900 p-3 rounded-xl border border-gray-800">
+                                <span class="text-[10px] text-gray-500 uppercase block">Est. Crater Diameter</span>
+                                <span class="text-lg font-extrabold text-neon-cyan" id="resCrater">4.8 km</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="exoplanets" class="py-12 border-t border-gray-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <div>
+                    <div class="text-xs font-mono text-neon-purple uppercase tracking-wider mb-1">Interactive Planetary Catalog</div>
+                    <h2 class="text-2xl sm:text-3xl font-black text-white">Confirmed Exoplanet Worlds</h2>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select id="exoplanetTypeFilter" onchange="filterExoplanets(this.value)" class="bg-space-900 border border-gray-800 text-xs rounded-xl px-4 py-2 text-gray-200 focus:outline-none focus:border-neon-purple">
+                        <option value="all">All Planet Types</option>
+                        <option value="Terrestrial">Terrestrial</option>
+                        <option value="Super-Earth">Super-Earth</option>
+                        <option value="Sub-Neptune">Sub-Neptune</option>
+                        <option value="Hot Jupiter">Hot Jupiter</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="exoplanetsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamic via JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing" class="py-16 border-t border-gray-800/80 bg-space-900/40 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-neon-purple/10 border border-neon-purple/30 text-xs text-neon-purple mb-3">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Scalable Space Access</span>
+                </div>
+                <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight mb-4">
+                    Flexible Pricing & Custom Seat Calculator
+                </h2>
+                <p class="text-gray-400 text-xs sm:text-sm">
+                    Toggle billing cycles or calculate custom seat quotes for academic research labs and space tech teams.
+                </p>
+
+                <!-- Billing Cycle Switch -->
+                <div class="mt-8 inline-flex items-center p-1.5 rounded-2xl bg-space-950 border border-gray-800">
+                    <button id="btnBillingMonthly" onclick="setBilling('monthly')" class="px-5 py-2 rounded-xl text-xs font-bold transition-all bg-neon-cyan text-space-950 shadow-md">
+                        Monthly
+                    </button>
+                    <button id="btnBillingAnnual" onclick="setBilling('annual')" class="px-5 py-2 rounded-xl text-xs font-bold transition-all text-gray-400 hover:text-white flex items-center space-x-2">
+                        <span>Yearly Billing</span>
+                        <span class="px-2 py-0.5 text-[9px] bg-neon-green/20 text-neon-green border border-neon-green/30 rounded-full font-mono">20% OFF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pricing Tier Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-12">
+                <!-- Free Tier -->
+                <div class="glass-panel rounded-3xl p-8 flex flex-col justify-between hover:border-gray-700 transition-all">
+                    <div>
+                        <div class="text-xs font-mono uppercase tracking-wider text-gray-400 mb-2">Community Stargazer</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Free Access</h3>
+                        <p class="text-xs text-gray-400 mb-6">Open telemetry viewer for enthusiasts and students.</p>
+                        <div class="mb-6 font-mono"><span class="text-4xl font-extrabold text-white">$0</span></div>
+                        <ul class="space-y-3 text-xs text-gray-300 border-t border-gray-800/80 pt-6">
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-green"></i><span>Standard mission tracking</span></li>
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-green"></i><span>Daily NEO asteroid approach table</span></li>
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-green"></i><span>2D/3D solar system simulator</span></li>
+                        </ul>
+                    </div>
+                    <button class="mt-8 w-full py-3 bg-space-850 text-gray-400 text-xs font-bold rounded-xl cursor-default border border-gray-800">Current Plan</button>
+                </div>
+
+                <!-- Pro Explorer -->
+                <div class="glass-panel rounded-3xl p-8 flex flex-col justify-between border-2 border-neon-purple hover:glow-purple transition-all relative">
+                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-neon-purple to-neon-pink text-white text-[10px] font-extrabold uppercase rounded-full">Most Popular</div>
+                    <div>
+                        <div class="text-xs font-mono uppercase tracking-wider text-neon-purple mb-2">Pro Researcher</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Pro Explorer</h3>
+                        <p class="text-xs text-gray-400 mb-6">High-frequency telemetry & atmospheric tools.</p>
+                        <div class="mb-6 font-mono">
+                            <span class="text-4xl font-extrabold text-white" id="pricePro">$19</span>
+                            <span class="text-xs text-gray-400" id="cyclePro"> / month</span>
+                        </div>
+                        <ul class="space-y-3 text-xs text-gray-300 border-t border-gray-800/80 pt-6">
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-purple"></i><span>Includes all Free features</span></li>
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-purple"></i><span>100k REST/WebSocket API Calls/mo</span></li>
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-purple"></i><span>3D Planet Shader Inspector</span></li>
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-purple"></i><span>Kinetic Impact Risk Engine</span></li>
+                        </ul>
+                    </div>
+                    <button onclick="openCheckout('Pro Explorer', document.getElementById('pricePro').innerText)" class="mt-8 w-full py-3.5 bg-gradient-to-r from-neon-purple to-neon-pink text-white text-xs font-bold rounded-xl shadow-lg hover:opacity-90 transition-all">Upgrade Pro</button>
+                </div>
+
+                <!-- Enterprise Ops -->
+                <div class="glass-panel rounded-3xl p-8 flex flex-col justify-between hover:border-neon-cyan/50 transition-all">
+                    <div>
+                        <div class="text-xs font-mono uppercase tracking-wider text-neon-cyan mb-2">Institutional</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Enterprise Ops</h3>
+                        <p class="text-xs text-gray-400 mb-6">Dedicated orbital compute clusters & custom sensors.</p>
+                        <div class="mb-6 font-mono">
+                            <span class="text-4xl font-extrabold text-white" id="priceEnterprise">$149</span>
+                            <span class="text-xs text-gray-400" id="cycleEnterprise"> / month</span>
+                        </div>
+                        <ul class="space-y-3 text-xs text-gray-300 border-t border-gray-800/80 pt-6">
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-cyan"></i><span>Unlimited WebSocket Streams</span></li>
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-cyan"></i><span>Dedicated Compute SLA (99.99%)</span></li>
+                            <li class="flex items-center space-x-2"><i class="fa-solid fa-check text-neon-cyan"></i><span>Custom sensor intake ingestion</span></li>
+                        </ul>
+                    </div>
+                    <button onclick="openCheckout('Enterprise Ops', document.getElementById('priceEnterprise').innerText)" class="mt-8 w-full py-3 bg-space-850 text-neon-cyan hover:bg-space-800 border border-neon-cyan/30 text-xs font-bold rounded-xl transition-all">Contact Ops Team</button>
+                </div>
+            </div>
+
+            <!-- Dynamic Interactive Custom Team Seat Estimator -->
+            <div class="glass-panel rounded-3xl p-6 sm:p-8 border border-gray-800">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="space-y-2 max-w-md">
+                        <span class="text-xs font-mono text-neon-cyan uppercase">Interactive Custom Team Estimator</span>
+                        <h3 class="text-xl font-bold text-white">Need multiple seats for your team or observatory?</h3>
+                        <p class="text-xs text-gray-400">Slide seats count to dynamically calculate pooled team licensing discounts.</p>
+                    </div>
+
+                    <div class="w-full md:w-1/2 bg-space-950 p-5 rounded-2xl border border-gray-800 space-y-4">
+                        <div class="flex justify-between items-center text-xs font-mono">
+                            <span class="text-gray-400">Team Seats Needed:</span>
+                            <span class="text-neon-cyan font-bold text-base" id="seatCountVal">15 Seats</span>
+                        </div>
+                        <input type="range" id="seatSlider" min="2" max="100" value="15" oninput="updateSeatCalc()" class="w-full accent-neon-cyan">
+
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-800 font-mono">
+                            <div>
+                                <span class="text-[10px] text-gray-500 uppercase block">Estimated Team Price</span>
+                                <span class="text-2xl font-black text-neon-purple" id="seatTotalPrice">$180 / mo</span>
+                            </div>
+                            <button onclick="openCheckout('Custom Team (' + document.getElementById('seatCountVal').innerText + ')', document.getElementById('seatTotalPrice').innerText)" class="px-5 py-2.5 bg-neon-cyan text-space-950 font-bold text-xs rounded-xl hover:opacity-90 transition-all">
+                                Reserve Team Seats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="telemetryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-space-950/80 backdrop-blur-md hidden">
+        <div class="glass-panel rounded-3xl max-w-2xl w-full p-6 sm:p-8 border border-gray-800 relative shadow-2xl">
+            <button onclick="closeModal('telemetryModal')" class="absolute top-5 right-5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-space-850 flex items-center justify-center text-neon-cyan text-xl border border-neon-cyan/30">
+                    <i class="fa-solid fa-satellite-dish" id="telIcon"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white" id="telTitle">JWST Telemetry Breakdown</h3>
+                    <p class="text-xs text-gray-400" id="telSub">Real-Time Subsystem Health & Orbital Vector</p>
+                </div>
+            </div>
+
+            <!-- Simulated SVG Sparkline Chart -->
+            <div class="bg-space-950 p-4 rounded-2xl border border-gray-800 mb-6">
+                <div class="flex justify-between items-center mb-2 text-xs font-mono">
+                    <span class="text-gray-400">Signal Strength (24h Trend):</span>
+                    <span class="text-neon-cyan font-bold" id="telSignalVal">-84.2 dBm</span>
+                </div>
+                <svg class="w-full h-24 stroke-neon-cyan fill-none" viewBox="0 0 300 80">
+                    <path stroke-width="2" d="M0,50 Q30,20 60,40 T120,30 T180,60 T240,25 T300,45" />
+                    <circle cx="300" cy="45" r="4" class="fill-neon-cyan" />
+                </svg>
+            </div>
+
+            <!-- Interactive Subsystem Status Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono mb-6" id="telSubsystems">
+                <!-- Dynamic via JS -->
+            </div>
+
+            <button onclick="closeModal('telemetryModal')" class="w-full py-3 bg-space-850 hover:bg-space-800 text-white font-bold rounded-xl border border-gray-700 transition-all">Close Diagnostic Window</button>
+        </div>
+    </div>
+
+    <div id="exoplanet3DModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-space-950/85 backdrop-blur-md hidden">
+        <div class="glass-panel rounded-3xl max-w-3xl w-full p-6 sm:p-8 border border-neon-purple/40 relative shadow-2xl">
+            <button onclick="closeModal('exoplanet3DModal')" class="absolute top-5 right-5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <!-- 3D Render Canvas Container -->
+                <div class="relative aspect-square rounded-2xl bg-space-950 overflow-hidden border border-gray-800" id="planet3DCanvasContainer">
+                    <canvas id="planet3DCanvas" class="w-full h-full block cursor-grab"></canvas>
+                    <div class="absolute bottom-3 left-3 text-[10px] font-mono text-gray-400 bg-space-950/80 px-2.5 py-1 rounded-lg">Drag to rotate body</div>
+                </div>
+
+                <!-- Controls & Atmospheric Specs -->
+                <div class="space-y-4">
+                    <div class="inline-flex items-center space-x-2 px-2.5 py-1 rounded-full bg-neon-purple/10 border border-neon-purple/30 text-[11px] text-neon-purple font-mono">
+                        <i class="fa-solid fa-cube"></i>
+                        <span>Procedural Planet Shader</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-white" id="modalExoName">TRAPPIST-1e</h3>
+                    <p class="text-xs text-gray-400" id="modalExoType">Terrestrial - Habitable Zone Candidate</p>
+
+                    <div class="space-y-2 text-xs font-mono bg-space-950 p-3.5 rounded-xl border border-gray-800 text-gray-300">
+                        <div class="flex justify-between"><span class="text-gray-500">Equatorial Radius:</span><span id="modalExoRadius">0.92 Earths</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Surface Gravity:</span><span id="modalExoGravity">0.93 g</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Avg. Temperature:</span><span id="modalExoTemp" class="text-neon-cyan">246 K (-27°C)</span></div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <span class="text-[11px] font-mono text-gray-400">Atmosphere Density Shader:</span>
+                        <input type="range" min="0" max="1" step="0.1" value="0.7" oninput="updateAtmosphereShader(this.value)" class="w-full accent-neon-purple">
+                    </div>
+
+                    <button onclick="closeModal('exoplanet3DModal')" class="w-full py-3 bg-neon-purple text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all">
+                        Return to Catalog
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="shareModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-space-950/80 backdrop-blur-md hidden">
+        <div class="glass-panel rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-neon-pink/40 relative shadow-2xl">
+            <button onclick="closeModal('shareModal')" class="absolute top-5 right-5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-neon-pink/10 border border-neon-pink/30 flex items-center justify-center text-neon-pink">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Share & Collab Board</h3>
+                    <p class="text-xs text-gray-400">Collaborate with space friends in real time</p>
+                </div>
+            </div>
+
+            <!-- Share Link Bar -->
+            <div class="mb-6">
+                <label class="block text-[11px] font-mono text-gray-400 mb-2">Workspace Shared Link</label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="shareLinkInput" readonly value="https://starscope.io/collab/session_39a82d1c" class="w-full bg-space-950 border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-gray-300 font-mono focus:outline-none">
+                    <button onclick="copyShareLink()" class="px-4 py-2.5 bg-neon-pink text-white rounded-xl text-xs font-bold shrink-0 flex items-center space-x-1 hover:opacity-90 transition-all">
+                        <i class="fa-solid fa-copy"></i>
+                        <span id="copyBtnText">Copy</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Simulated Interactive Comment Board -->
+            <div class="border-t border-gray-800 pt-4 mb-4">
+                <label class="block text-[11px] font-mono text-gray-400 mb-2">Live Session Annotations</label>
+                <div id="commentBoard" class="space-y-2 max-h-40 overflow-y-auto pr-1 mb-3">
+                    <div class="bg-space-950 p-2.5 rounded-xl border border-gray-800 text-xs">
+                        <span class="font-bold text-neon-cyan">Dr. Chloe:</span> <span class="text-gray-300">Apophis close approach trajectory looks safe for 2026!</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="newCommentInput" placeholder="Add a research note for friends..." onkeypress="if(event.key==='Enter') addCollabComment()" class="w-full bg-space-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-neon-pink">
+                    <button onclick="addCollabComment()" class="px-3 py-2 bg-space-850 hover:bg-space-800 text-neon-pink border border-neon-pink/30 rounded-xl text-xs font-bold shrink-0">Post</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="checkoutModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-space-950/80 backdrop-blur-md hidden">
+        <div class="glass-panel rounded-3xl max-w-md w-full p-6 sm:p-8 border border-gray-800 relative shadow-2xl">
+            <button onclick="closeModal('checkoutModal')" class="absolute top-5 right-5 text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+
+            <h3 class="text-xl font-bold text-white mb-1" id="checkoutPlanTitle">Upgrade Plan</h3>
+            <p class="text-xs text-gray-400 mb-6">Instant access to deep space REST APIs & raw vectors</p>
+
+            <div class="bg-space-950 p-4 rounded-2xl border border-gray-800 mb-6 flex justify-between items-center">
+                <span class="text-xs font-bold text-white" id="checkoutPlanName">Pro Explorer</span>
+                <span class="text-lg font-mono font-extrabold text-neon-purple" id="checkoutPlanPrice">$19 / mo</span>
+            </div>
+
+            <form onsubmit="handleCheckoutSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-mono text-gray-400 mb-1">Cardholder Name</label>
+                    <input type="text" required placeholder="Dr. Eleanor Arroway" class="w-full bg-space-950 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 focus:outline-none focus:border-neon-purple">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-mono text-gray-400 mb-1">Card Details</label>
+                    <input type="text" required placeholder="4242 •••• •••• 4242" class="w-full bg-space-950 border border-gray-800 rounded-xl px-3.5 py-2 text-xs text-gray-200 font-mono focus:outline-none focus:border-neon-purple">
+                </div>
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-neon-purple to-neon-pink text-white text-xs font-bold rounded-xl shadow-lg hover:opacity-90 transition-all">Confirm Subscription</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Component -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-panel border border-neon-cyan/50 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3">
+        <i class="fa-solid fa-circle-check text-neon-cyan"></i>
+        <span id="toastMsg" class="text-xs font-semibold">Notification message</span>
+    </div>
+
+    <script>
+        // Data Models
+        const rawMissions = [
+            { id: 1, name: "James Webb Space Telescope", category: "Deep Space", status: "Operational", launch: "Dec 25, 2021", telemetry: "Distance: 1.5M km (L2 Halo)", health: "99.8%", tags: ["JWST", "Deep Space"], icon: "fa-satellite-dish" },
+            { id: 2, name: "Perseverance Rover", category: "Mars", status: "Active on Mars", launch: "Jul 30, 2020", telemetry: "Location: Jezero Crater, Mars", health: "97.2%", tags: ["Mars", "Rover"], icon: "fa-robot" },
+            { id: 3, name: "International Space Station", category: "Orbital", status: "Manned (7 Crew)", launch: "Nov 20, 1998", telemetry: "Alt: 417 km | Speed: 27,600 km/h", health: "98.9%", tags: ["Earth", "Orbital"], icon: "fa-shuttle-space" },
+            { id: 4, name: "Voyager 1", category: "Deep Space", status: "Interstellar", launch: "Sep 5, 1977", telemetry: "Distance: 24.1 Billion km from Sun", health: "84.5%", tags: ["Interstellar", "Deep Space"], icon: "fa-compass" },
+            { id: 5, name: "Artemis II Lunar Probe", category: "Lunar", status: "Prep Launch", launch: "Scheduled 2026", telemetry: "Status: Launch Pad Integration", health: "100%", tags: ["Moon", "Lunar"], icon: "fa-moon" },
+            { id: 6, name: "Europa Clipper", category: "Deep Space", status: "En Route to Jupiter", launch: "Oct 14, 2024", telemetry: "Velocity: 14.2 km/s relative to Sun", health: "99.9%", tags: ["Jupiter", "Deep Space"], icon: "fa-meteor" }
+        ];
+
+        const rawAsteroids = [
+            { name: "(2026 DW1)", date: "Oct 15, 2026", missDistance: "1.2M km (3.1 LD)", velocity: "24.5 km/s", diameter: "140m", hazardous: true, tags: ["Hazardous"] },
+            { name: "Apophis (99942)", date: "Oct 18, 2026", missDistance: "4.8M km (12.5 LD)", velocity: "30.7 km/s", diameter: "370m", hazardous: false, tags: ["Safe"] },
+            { name: "(2026 KE4)", date: "Oct 22, 2026", missDistance: "850K km (2.2 LD)", velocity: "18.9 km/s", diameter: "210m", hazardous: true, tags: ["Hazardous"] },
+            { name: "Bennu (101955)", date: "Nov 02, 2026", missDistance: "14.3M km (37.2 LD)", velocity: "27.8 km/s", diameter: "490m", hazardous: false, tags: ["Safe"] }
+        ];
+
+        const rawExoplanets = [
+            { name: "TRAPPIST-1e", type: "Terrestrial", distance: "39.6 ly", radius: "0.92 R⊕", gravity: "0.93 g", temp: "246 K", habitability: 0.95, tags: ["Habitable", "Terrestrial"] },
+            { name: "Kepler-452b", type: "Super-Earth", distance: "1,402 ly", radius: "1.63 R⊕", gravity: "1.45 g", temp: "265 K", habitability: 0.84, tags: ["Habitable", "Super-Earth"] },
+            { name: "Proxima Centauri b", type: "Terrestrial", distance: "4.24 ly", radius: "1.08 R⊕", gravity: "1.12 g", temp: "234 K", habitability: 0.87, tags: ["Habitable", "Terrestrial"] },
+            { name: "K2-18b", type: "Sub-Neptune", distance: "124 ly", radius: "2.60 R⊕", gravity: "2.10 g", temp: "300 K", habitability: 0.76, tags: ["Sub-Neptune"] },
+            { name: "WASP-96b", type: "Hot Jupiter", distance: "1,150 ly", radius: "1.20 RJ", gravity: "0.68 g", temp: "1280 K", habitability: 0.12, tags: ["Hot Jupiter"] }
+        ];
+
+        let currentActiveTag = 'All';
+        let currentSearchQuery = '';
+        let currentBillingCycle = 'monthly';
+
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAllData();
+            initOrbitSimulator();
+            updateImpactCalc();
+            updateSeatCalc();
+        });
+
+        // Search & Filter Dispatcher
+        function renderAllData() {
+            const mFiltered = rawMissions.filter(m => matchesFilter(m.name, m.category, m.tags));
+            const aFiltered = rawAsteroids.filter(a => matchesFilter(a.name, a.hazardous ? 'Hazardous' : 'Safe', a.tags));
+            const eFiltered = rawExoplanets.filter(e => matchesFilter(e.name, e.type, e.tags));
+
+            renderMissions(mFiltered);
+            renderAsteroids(aFiltered);
+            renderExoplanets(eFiltered);
+
+            const totalMatches = mFiltered.length + aFiltered.length + eFiltered.length;
+            document.getElementById('searchMatchesCount').innerText = `${totalMatches} Filtered`;
+        }
+
+        function matchesFilter(name, category, tags) {
+            const matchesQuery = !currentSearchQuery || name.toLowerCase().includes(currentSearchQuery) || category.toLowerCase().includes(currentSearchQuery);
+            const matchesTag = currentActiveTag === 'All' || 
+                (currentActiveTag === 'Deep Space' && category === 'Deep Space') ||
+                (currentActiveTag === 'Mars' && (category === 'Mars' || tags.includes('Mars'))) ||
+                (currentActiveTag === 'Hazardous' && tags.includes('Hazardous')) ||
+                (currentActiveTag === 'Habitable' && tags.includes('Habitable'));
+
+            return matchesQuery && matchesTag;
+        }
+
+        function handleUnifiedSearch(val) {
+            currentSearchQuery = val.toLowerCase().trim();
+            renderAllData();
+        }
+
+        function setQuickTag(tag) {
+            currentActiveTag = tag;
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                if (btn.getAttribute('data-tag') === tag) {
+                    btn.className = "tag-btn px-3 py-1 rounded-lg bg-neon-cyan text-space-950 font-bold transition-all";
+                } else {
+                    btn.className = "tag-btn px-3 py-1 rounded-lg bg-space-850 text-gray-300 hover:text-white border border-gray-800 transition-all";
+                }
+            });
+            renderAllData();
+        }
+
+        // Render Missions
+        function renderMissions(data) {
+            const grid = document.getElementById('missionsGrid');
+            if (data.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs font-mono text-gray-500">No telemetry assets match current query.</div>`;
+                return;
+            }
+            grid.innerHTML = data.map(m => `
+                <div class="glass-panel glass-panel-hover rounded-2xl p-6 relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-space-850 flex items-center justify-center text-neon-cyan border border-gray-800">
+                                <i class="fa-solid ${m.icon}"></i>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono ${m.status.includes('Active') || m.status.includes('Operational') ? 'bg-neon-green/10 text-neon-green border border-neon-green/30' : 'bg-neon-amber/10 text-neon-amber border border-neon-amber/30'}">
+                                ${m.status}
+                            </span>
+                        </div>
+                        <h3 class="text-base font-bold text-white mb-1">${m.name}</h3>
+                        <p class="text-xs text-gray-400 mb-3">Launch: ${m.launch}</p>
+                        <div class="bg-space-950 p-3 rounded-xl border border-gray-800 text-xs font-mono text-gray-300 mb-4">
+                            ${m.telemetry}
+                        </div>
+                    </div>
+                    <button onclick="openTelemetryModal('${m.name}')" class="w-full py-2.5 bg-space-850 hover:bg-space-800 text-neon-cyan border border-neon-cyan/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>Inspect Telemetry</span>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Render Asteroids
+        function renderAsteroids(data) {
+            const tbody = document.getElementById('neoTableBody');
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-xs font-mono text-gray-500">No close approaches match current filter.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = data.map(a => `
+                <tr class="hover:bg-space-850/50 transition-colors">
+                    <td class="p-4 font-bold text-white font-mono">${a.name}</td>
+                    <td class="p-4 font-mono text-gray-300">${a.date}</td>
+                    <td class="p-4 font-mono text-gray-300">${a.missDistance}</td>
+                    <td class="p-4 font-mono text-gray-300">${a.velocity}</td>
+                    <td class="p-4 font-mono text-gray-300">${a.diameter}</td>
+                    <td class="p-4">
+                        ${a.hazardous 
+                            ? `<span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-neon-pink/10 text-neon-pink border border-neon-pink/30 flex items-center w-max space-x-1"><i class="fa-solid fa-triangle-exclamation"></i><span>High Risk</span></span>`
+                            : `<span class="px-2.5 py-1 rounded-full text-[10px] font-mono bg-neon-green/10 text-neon-green border border-neon-green/30 flex items-center w-max space-x-1"><i class="fa-solid fa-shield"></i><span>Nominal Orbit</span></span>`
+                        }
+                    </td>
+                    <td class="p-4 text-right">
+                        <button onclick="loadIntoImpactCalc('${a.diameter}', '${a.velocity}')" class="px-3 py-1.5 bg-space-850 hover:bg-space-800 text-neon-pink text-xs font-mono rounded-lg border border-neon-pink/30 transition-all">
+                            Simulate
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Render Exoplanets
+        function renderExoplanets(data) {
+            const grid = document.getElementById('exoplanetsGrid');
+            if (data.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs font-mono text-gray-500">No exoplanets match current query.</div>`;
+                return;
+            }
+            grid.innerHTML = data.map(e => `
+                <div class="glass-panel glass-panel-hover rounded-2xl p-6 relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-[10px] font-mono bg-neon-purple/10 text-neon-purple border border-neon-purple/30 px-2.5 py-0.5 rounded-lg">${e.type}</span>
+                            <span class="text-xs font-mono text-gray-400">${e.distance}</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">${e.name}</h3>
+                        <div class="space-y-2 bg-space-950 p-3 rounded-xl border border-gray-800 text-xs font-mono text-gray-300 mb-4">
+                            <div class="flex justify-between"><span class="text-gray-500">Habitability:</span><span class="text-neon-green font-bold">${e.habitability}</span></div>
+                            <div class="w-full bg-space-850 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-gradient-to-r from-neon-cyan to-neon-green h-full" style="width: ${e.habitability * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="openExoplanet3DModal('${e.name}')" class="w-full py-2.5 bg-neon-purple text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-cube"></i>
+                        <span>Inspect 3D World Shader</span>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        let simRunning = true;
+        let simSpeed = 1.0;
+        let simZoom = 1.0;
+        let cameraAngleX = 0;
+        let simAnimId = null;
+
+        function initOrbitSimulator() {
+            const canvas = document.getElementById('orbitCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            let angle = 0;
+            const bodies = [
+                { name: 'Sun', radius: 18, color: '#F59E0B', orbitX: 0, orbitY: 0, speed: 0, cat: 'Star', metrics: 'Surface Temp: 5,778 K' },
+                { name: 'Mercury', radius: 4, color: '#00F0FF', orbitX: 65, orbitY: 40, speed: 2.2, cat: 'Terrestrial Planet', metrics: 'Orbit: 88 Days | Distance: 57.9M km' },
+                { name: 'Venus', radius: 6, color: '#EC4899', orbitX: 110, orbitY: 70, speed: 1.5, cat: 'Terrestrial Planet', metrics: 'Atmosphere: Dense CO2 | Temp: 737 K' },
+                { name: 'Earth', radius: 7, color: '#3B82F6', orbitX: 170, orbitY: 105, speed: 1.0, cat: 'Terrestrial Planet', metrics: 'Moon Count: 1 | Orbit: 365.25 Days' },
+                { name: 'Mars', radius: 5, color: '#F43F5E', orbitX: 230, orbitY: 145, speed: 0.8, cat: 'Terrestrial Planet', metrics: 'Moons: Phobos & Deimos | Rovers: 2' },
+                { name: 'JWST Satellite', radius: 3, color: '#A855F7', orbitX: 190, orbitY: 118, speed: 1.02, cat: 'Deep Space Telescope', metrics: 'Location: Earth-Sun L2 Halo Orbit' }
+            ];
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.scale(simZoom, simZoom);
+
+                // Draw orbits and bodies
+                bodies.forEach((b, idx) => {
+                    if (b.orbitX > 0) {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, b.radius > 0 ? b.orbitX : 0, b.orbitY, 0, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        const pAngle = angle * b.speed + idx;
+                        const px = b.orbitX * Math.cos(pAngle);
+                        const py = b.orbitY * Math.sin(pAngle);
+
+                        ctx.fillStyle = b.color;
+                        ctx.beginPath();
+                        ctx.arc(px, py, b.radius, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Label
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                        ctx.font = '10px Fira Code';
+                        ctx.fillText(b.name, px + b.radius + 4, py + 3);
+
+                        // Save dynamic calculated coordinates for click detection
+                        b.lastX = cx + px * simZoom;
+                        b.lastY = cy + py * simZoom;
+                    } else {
+                        // Draw Sun
+                        ctx.fillStyle = b.color;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                        b.lastX = cx;
+                        b.lastY = cy;
+                    }
+                });
+
+                ctx.restore();
+
+                if (simRunning) {
+                    angle += 0.008 * simSpeed;
+                }
+                simAnimId = requestAnimationFrame(draw);
+            }
+
+            draw();
+
+            // Click canvas inspection event
+            canvas.addEventListener('click', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+
+                bodies.forEach(b => {
+                    const dist = Math.hypot(mx - b.lastX, my - b.lastY);
+                    if (dist < 20) {
+                        document.getElementById('inspectTitle').innerText = b.name;
+                        document.getElementById('inspectCategory').innerText = b.cat;
+                        document.getElementById('inspectSub').innerText = `Simulated Coordinates Vector`;
+                        document.getElementById('inspectMetrics').innerText = b.metrics;
+                        document.getElementById('canvasInspectOverlay').classList.remove('hidden');
+                    }
+                });
+            });
+        }
+
+        function toggleSimPlay() {
+            simRunning = !simRunning;
+            document.getElementById('simPlayIcon').className = simRunning ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+            document.getElementById('simPlayText').innerText = simRunning ? 'Pause' : 'Resume';
+        }
+
+        function updateSimSpeed(val) { simSpeed = parseFloat(val); }
+        function updateSimZoom(val) { simZoom = parseFloat(val); }
+        function resetSimCamera() { simSpeed = 1.0; simZoom = 1.0; document.getElementById('simSpeedSlider').value = 1; document.getElementById('simZoomSlider').value = 1; }
+        function closeCanvasInspect() { document.getElementById('canvasInspectOverlay').classList.add('hidden'); }
+
+        function updateImpactCalc() {
+            const d = parseFloat(document.getElementById('calcDiameter').value);
+            const v = parseFloat(document.getElementById('calcVelocity').value);
+            const density = parseFloat(document.getElementById('calcMaterial').value);
+
+            document.getElementById('calcDiameterVal').innerText = `${d} meters`;
+            document.getElementById('calcVelocityVal').innerText = `${v.toFixed(1)} km/s`;
+
+            // Energy E = 0.5 * m * v^2 in Megatons of TNT (1 MT = 4.184e15 Joules)
+            const radius = d / 2;
+            const volume = (4/3) * Math.PI * Math.pow(radius, 3);
+            const mass = volume * density;
+            const energyJoules = 0.5 * mass * Math.pow(v * 1000, 2);
+            const megatons = energyJoules / 4.184e15;
+
+            const craterKm = 0.07 * Math.pow(megatons, 0.29) * 10;
+
+            document.getElementById('resEnergy').innerText = megatons > 1000 ? `${(megatons/1000).toFixed(1)}K MT` : `${megatons.toFixed(0)} MT`;
+            document.getElementById('resCrater').innerText = `${craterKm.toFixed(1)} km`;
+        }
+
+        function loadIntoImpactCalc(diameterStr, velStr) {
+            const d = parseInt(diameterStr) || 300;
+            const v = parseFloat(velStr) || 20.0;
+            document.getElementById('calcDiameter').value = d;
+            document.getElementById('calcVelocity').value = v;
+            updateImpactCalc();
+            document.getElementById('impact-calculator').scrollIntoView({ behavior: 'smooth' });
+            showToast(`Loaded asteroid metrics (${d}m @ ${v}km/s) into simulator!`);
+        }
+
+        function setBilling(cycle) {
+            currentBillingCycle = cycle;
+            const btnM = document.getElementById('btnBillingMonthly');
+            const btnA = document.getElementById('btnBillingAnnual');
+
+            if (cycle === 'monthly') {
+                btnM.className = "px-5 py-2 rounded-xl text-xs font-bold transition-all bg-neon-cyan text-space-950 shadow-md";
+                btnA.className = "px-5 py-2 rounded-xl text-xs font-bold transition-all text-gray-400 hover:text-white flex items-center space-x-2";
+                document.getElementById('pricePro').innerText = "$19";
+                document.getElementById('priceEnterprise').innerText = "$149";
+            } else {
+                btnA.className = "px-5 py-2 rounded-xl text-xs font-bold transition-all bg-neon-cyan text-space-950 shadow-md flex items-center space-x-2";
+                btnM.className = "px-5 py-2 rounded-xl text-xs font-bold transition-all text-gray-400 hover:text-white";
+                document.getElementById('pricePro').innerText = "$15";
+                document.getElementById('priceEnterprise').innerText = "$119";
+            }
+            updateSeatCalc();
+        }
+
+        function updateSeatCalc() {
+            const seats = parseInt(document.getElementById('seatSlider').value);
+            document.getElementById('seatCountVal').innerText = `${seats} Seats`;
+
+            const basePrice = currentBillingCycle === 'monthly' ? 15 : 12;
+            const total = seats * basePrice;
+            document.getElementById('seatTotalPrice').innerText = `$${total} / mo`;
+        }
+
+        let planetScene, planetCamera, planetRenderer, planetMesh, planetAnimId;
+
+        function openExoplanet3DModal(name) {
+            const exo = rawExoplanets.find(e => e.name === name) || rawExoplanets[0];
+            document.getElementById('modalExoName').innerText = exo.name;
+            document.getElementById('modalExoType').innerText = `${exo.type} - Habitability Index: ${exo.habitability}`;
+            document.getElementById('modalExoRadius').innerText = exo.radius;
+            document.getElementById('modalExoGravity').innerText = exo.gravity;
+            document.getElementById('modalExoTemp').innerText = exo.temp;
+
+            document.getElementById('exoplanet3DModal').classList.remove('hidden');
+
+            setTimeout(() => {
+                const container = document.getElementById('planet3DCanvasContainer');
+                const canvas = document.getElementById('planet3DCanvas');
+
+                if (planetRenderer) planetRenderer.dispose();
+
+                planetScene = new THREE.Scene();
+                planetCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+                planetCamera.position.z = 3;
+
+                planetRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+                planetRenderer.setSize(container.clientWidth, container.clientHeight);
+
+                const geometry = new THREE.SphereGeometry(1, 32, 32);
+                const material = new THREE.MeshPhongMaterial({
+                    color: exo.type === 'Terrestrial' ? 0x00F0FF : exo.type === 'Hot Jupiter' ? 0xF59E0B : 0xA855F7,
+                    wireframe: true
+                });
+
+                planetMesh = new THREE.Mesh(geometry, material);
+                planetScene.add(planetMesh);
+
+                const light = new THREE.DirectionalLight(0xffffff, 1);
+                light.position.set(5, 3, 5);
+                planetScene.add(light);
+
+                function animate3D() {
+                    planetAnimId = requestAnimationFrame(animate3D);
+                    planetMesh.rotation.y += 0.01;
+                    planetRenderer.render(planetScene, planetCamera);
+                }
+                animate3D();
+            }, 100);
+        }
+
+        function updateAtmosphereShader(val) {
+            if (planetMesh) {
+                planetMesh.scale.setScalar(1 + parseFloat(val) * 0.2);
+            }
+        }
+
+        function openTelemetryModal(name) {
+            document.getElementById('telTitle').innerText = `${name} Telemetry`;
+            document.getElementById('telSubsystems').innerHTML = `
+                <div class="bg-space-950 p-2.5 rounded-xl border border-gray-800"><span class="text-gray-500 block">Avionics</span><span class="text-neon-green">NOMINAL</span></div>
+                <div class="bg-space-950 p-2.5 rounded-xl border border-gray-800"><span class="text-gray-500 block">Propulsion</span><span class="text-neon-green">READY</span></div>
+                <div class="bg-space-950 p-2.5 rounded-xl border border-gray-800"><span class="text-gray-500 block">Thermal</span><span class="text-neon-cyan">28.4°C</span></div>
+                <div class="bg-space-950 p-2.5 rounded-xl border border-gray-800"><span class="text-gray-500 block">Solar Power</span><span class="text-neon-green">99.4%</span></div>
+            `;
+            document.getElementById('telemetryModal').classList.remove('hidden');
+        }
+
+        function openShareModal() { document.getElementById('shareModal').classList.remove('hidden'); }
+        function openCheckout(plan, price) {
+            document.getElementById('checkoutPlanName').innerText = plan;
+            document.getElementById('checkoutPlanPrice').innerText = price;
+            document.getElementById('checkoutModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            if (id === 'exoplanet3DModal' && planetAnimId) {
+                cancelAnimationFrame(planetAnimId);
+            }
+        }
+
+        function addCollabComment() {
+            const input = document.getElementById('newCommentInput');
+            if (!input.value.trim()) return;
+            const board = document.getElementById('commentBoard');
+            const div = document.createElement('div');
+            div.className = "bg-space-950 p-2.5 rounded-xl border border-gray-800 text-xs";
+            div.innerHTML = `<span class="font-bold text-neon-pink">You:</span> <span class="text-gray-300">${input.value}</span>`;
+            board.appendChild(div);
+            input.value = '';
+            board.scrollTop = board.scrollHeight;
+        }
+
+        function copyShareLink() {
+            const input = document.getElementById('shareLinkInput');
+            input.select();
+            document.execCommand('copy');
+            showToast("Collaborative session link copied to clipboard!");
+        }
+
+        function handleCheckoutSubmit(e) {
+            e.preventDefault();
+            closeModal('checkoutModal');
+            showToast("Subscription successful! Welcome to StarScope Pro.");
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 3000);
+        }
+    </script>
+</body>
 </html>

@@ -30,8 +30,8 @@ app.use(
   })
 );
 
-// SQLite Database Setup (auto-creates spacevault.db)
-const db = new Database("spacevault.db");
+// SQLite Database Setup (auto-creates starscope.db)
+const db = new Database("starscope.db");
 db.pragma("journal_mode = WAL");
 
 db.exec(`
@@ -57,14 +57,14 @@ const insertQueryLog = db.prepare(`
 
 // Root route
 app.get("/", (req, res) => {
-  res.json({ message: "SpaceVault API Server is running!" });
+  res.json({ message: "StarScope API Server is running!" });
 });
 
 
 
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "SpaceVault Intelligence API" });
+  res.json({ status: "ok", service: "StarScope Intelligence API" });
 });
 
 // AI Space Intelligence Endpoint (Mock/Extensible LLM orchestrator)
@@ -92,5 +92,5 @@ app.post("/api/ai/query", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`SpaceVault Backend running at http://localhost:5000`);
+  console.log(`StarScope Backend running at http://localhost:5000`);
 });
